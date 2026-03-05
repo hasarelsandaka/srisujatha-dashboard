@@ -1,133 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="si">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sri Sujatha Admin Dashboard</title>
+    <title>Sri Sujatha Student Database</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary-color: #4e73df; --bg-color: #f8f9fc; --sidebar-color: #224abe; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); }
-        .sidebar { height: 100vh; background: linear-gradient(180deg, var(--sidebar-color) 10%, #224abe 100%); color: white; position: fixed; width: 250px; padding-top: 20px; }
-        .main-content { margin-left: 250px; padding: 30px; }
-        .card-stat { border-left: 4px solid var(--primary-color); border-radius: 10px; }
-        .table-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); }
-        .profile-header { background: #f8f9fc; border-radius: 10px; padding: 15px; margin-bottom: 20px; border-left: 5px solid var(--primary-color); }
-        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; } }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); overflow-x: hidden; }
+        .sidebar { height: 100vh; background: linear-gradient(180deg, var(--sidebar-color) 10%, #1a3a9e 100%); color: white; position: fixed; width: 250px; padding-top: 20px; z-index: 1000; transition: 0.3s; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.7); border-radius: 5px; margin: 5px 15px; padding: 12px; transition: 0.3s; cursor: pointer; display: flex; align-items: center; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
+        .main-content { margin-left: 250px; padding: 30px; min-height: 100vh; }
+        .table-container { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e3e6f0; }
+        .grade-card { cursor: pointer; transition: 0.3s; border: 1px solid #e3e6f0; border-radius: 12px; background: white; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .grade-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); border-color: var(--primary-color); }
+        .house-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .house-sila { background: #e3f2fd; color: #1976d2; }
+        .house-samadhi { background: #fff3e0; color: #ef6c00; }
+        .house-pragna { background: #f1f8e9; color: #388e3c; }
+        .hidden { display: none !important; }
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        @media (max-width: 768px) { .sidebar { width: 0; display: none; } .main-content { margin-left: 0; } }
     </style>
 </head>
 <body>
 
+<div id="loader" class="loader-overlay hidden">
+    <div class="spinner-border text-primary"></div>
+    <div class="mt-3 fw-bold text-primary" id="loader-text">පද්ධතිය ක්‍රියාත්මක වේ...</div>
+</div>
+
 <div class="sidebar">
     <div class="text-center mb-4">
-        <i class="fas fa-graduation-cap fa-3x mb-2"></i>
-        <h4>SRI SUJATHA</h4>
-        <small>Admin Panel</small>
+        <i class="fas fa-graduation-cap fa-3x mb-2 text-white"></i>
+        <h5 class="fw-bold mb-0">SRI SUJATHA</h5>
+        <p class="small opacity-75">STUDENT DATABASE</p>
     </div>
-    <hr>
-    <nav class="nav flex-column px-3">
-        <a class="nav-link text-white active" href="#"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    <nav class="nav flex-column">
+        <div class="nav-link active" onclick="switchView('dashboard')" id="link-dash"><i class="fas fa-home me-2"></i> Dashboard</div>
+        <div class="nav-link" onclick="switchView('classes')" id="link-classes"><i class="fas fa-users me-2"></i> Classes (පන්ති)</div>
     </nav>
 </div>
 
 <div class="main-content">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Student Directory</h1>
-        <div>
-            <input type="file" id="csvFileInput" accept=".csv" style="display:none">
-            <button class="btn btn-sm btn-info shadow-sm me-2 text-white" onclick="document.getElementById('csvFileInput').click()">
-                <i class="fas fa-upload fa-sm"></i> Import from CSV
-            </button>
-            <button class="btn btn-sm btn-success shadow-sm me-2" onclick="exportCSV()">
-                <i class="fas fa-download fa-sm"></i> Export to CSV
-            </button>
-            <button class="btn btn-sm btn-danger shadow-sm" id="btnClearAll">
-                <i class="fas fa-trash-alt fa-sm"></i> Clear All Data
-            </button>
+    
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark">Dashboard</h3>
+            <div>
+                <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="handleCSV(this)">
+                <button class="btn btn-primary" onclick="document.getElementById('csvInput').click()"><i class="fas fa-upload me-1"></i> Import CSV</button>
+                <button class="btn btn-danger ms-2" onclick="deleteAllData()"><i class="fas fa-trash me-1"></i> සියල්ල මකන්න</button>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6"><div class="card p-3 border-0 border-start border-4 border-primary shadow-sm"><p class="text-muted small mb-1">මුළු ශිෂ්‍ය සංඛ්‍යාව</p><h2 class="fw-bold mb-0" id="total-students">0</h2></div></div>
+            <div class="col-md-6"><div class="card p-3 border-0 border-start border-4 border-success shadow-sm"><p class="text-muted small mb-1">සක්‍රීය ශ්‍රේණි</p><h2 class="fw-bold mb-0" id="total-grades">0</h2></div></div>
+        </div>
+
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">සියලුම සිසුන්</h5>
+                <input type="text" id="dashSearch" class="form-control w-25 shadow-sm" placeholder="සෙවීම...">
+            </div>
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-hover">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>ශ්‍රේණිය</th>
+                            <th>අංකය</th>
+                            <th>නම</th>
+                            <th>නිවාසය</th>
+                            <th>ක්‍රියා</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dash-tbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div class="row mb-4 text-center">
-        <div class="col-md-6 mb-4">
-            <div class="card card-stat shadow h-100 py-3">
-                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Students</div>
-                <div class="h2 mb-0 font-weight-bold text-gray-800" id="totalCount">0</div>
-            </div>
+    <!-- CLASSES VIEW -->
+    <div id="classes-view" class="hidden">
+        <div id="grades-grid-container">
+            <h3 class="fw-bold text-dark mb-4">ශ්‍රේණිය තෝරන්න</h3>
+            <div class="row g-3" id="grades-grid"></div>
         </div>
-        <div class="col-md-6 mb-4">
-            <div class="card card-stat shadow h-100 py-3" style="border-left-color: #1cc88a;">
-                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">New Today</div>
-                <div class="h2 mb-0 font-weight-bold text-gray-800" id="todayCount">0</div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Register Form -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Quick Register</h5>
-            <div class="row g-3">
-                <div class="col-md-4"><input type="text" id="stuName" class="form-control" placeholder="Full Name"></div>
-                <div class="col-md-3"><input type="text" id="stuID" class="form-control" placeholder="Index No (e.g. 3841)"></div>
-                <div class="col-md-3">
-                    <select id="stuGrade" class="form-select">
-                        <option value="">Select Grade</option>
-                        <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
-                        <option>Grade 4</option><option>Grade 5</option>
-                        <option>Grade 6</option><option>Grade 7</option><option>Grade 8</option>
-                        <option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
-                        <option>Grade 12</option><option>Grade 13</option>
-                    </select>
+        <div id="class-detail" class="hidden">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary mb-2" onclick="backToGrades()"><i class="fas fa-arrow-left"></i> පසුපසට</button>
+                    <h3 class="fw-bold mb-0" id="current-class-title">Grade 7</h3>
                 </div>
-                <div class="col-md-2"><button class="btn btn-primary w-100" id="btnSave">Add Student</button></div>
+                <span class="badge bg-primary fs-6" id="class-count">0 Students</span>
             </div>
-        </div>
-    </div>
-
-    <div class="table-container shadow-sm text-center" id="importLoader" style="display:none">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Processing, please wait...</p>
-    </div>
-
-    <!-- Main Student List -->
-    <div class="table-container shadow-sm">
-        <div class="d-flex justify-content-between mb-3">
-            <h6>Student List</h6>
-            <input type="text" id="searchInput" class="form-control w-25" placeholder="Search by name, ID or Grade...">
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <!-- Columns renamed to match the underlying data placement -->
-                        <th>Grade</th>
-                        <th>Index No</th>
-                        <th>Name</th>
-                        <th>Joined Date</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="studentTable"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Student Profile Modal -->
-<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i>Student Profile</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="profileContent">
-                <!-- Profile data will be injected here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>අංකය</th>
+                                <th>නම</th>
+                                <th>නිවාසය</th>
+                                <th>WhatsApp</th>
+                                <th>මකන්න</th>
+                            </tr>
+                        </thead>
+                        <tbody id="class-tbody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -135,7 +122,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, doc, deleteDoc, query, orderBy, onSnapshot, getDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, deleteDoc, query, orderBy, onSnapshot, getDocs, writeBatch, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDCh27_ET3I_ovDyhhxCJr2yeMH3YnC1Pc",
@@ -143,211 +130,186 @@
         projectId: "srisujathadb",
         storageBucket: "srisujathadb.firebasestorage.app",
         messagingSenderId: "907198039870",
-        appId: "1:907198039870:web:6209a0d295bbf6e7000e6f",
-        measurementId: "G-3MYFRDYZR0"
+        appId: "1:907198039870:web:6209a0d295bbf6e7000e6f"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const studentsCol = collection(db, "students");
-    const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+    const colRef = collection(db, "students");
+    
+    let allStudents = [];
 
-    // ADD SINGLE STUDENT
-    document.getElementById('btnSave').onclick = async () => {
-        const name = document.getElementById('stuName').value;
-        const id = document.getElementById('stuID').value;
-        const grade = document.getElementById('stuGrade').value;
-        if(!id || !name || !grade) { alert("Please fill all fields!"); return; }
-        try {
-            await addDoc(studentsCol, { 
-                studentID: id, 
-                name, 
-                grade, 
-                attendance: {}, 
-                createdAt: new Date() 
-            });
-            document.getElementById('stuID').value = "";
-            document.getElementById('stuName').value = "";
-            document.getElementById('stuGrade').value = "";
-        } catch (e) { alert("Error: " + e.message); }
+    const toggleLoader = (show, text = "") => {
+        const l = document.getElementById('loader');
+        if(text) document.getElementById('loader-text').innerText = text;
+        l.classList.toggle('hidden', !show);
     };
 
-    // CLEAR ALL DATA
-    document.getElementById('btnClearAll').onclick = async () => {
-        if (confirm("WARNING: Are you sure you want to delete ALL students? This action cannot be undone.")) {
-            document.getElementById('importLoader').style.display = 'block';
-            try {
-                const snapshot = await getDocs(studentsCol);
-                const batch = writeBatch(db);
-                
-                snapshot.forEach((studentDoc) => {
-                    batch.delete(studentDoc.ref);
-                });
+    window.switchView = (view) => {
+        document.getElementById('dashboard-view').classList.toggle('hidden', view !== 'dashboard');
+        document.getElementById('classes-view').classList.toggle('hidden', view !== 'classes');
+        document.getElementById('link-dash').classList.toggle('active', view === 'dashboard');
+        document.getElementById('link-classes').classList.toggle('active', view === 'classes');
+    };
 
-                await batch.commit();
-                alert("All data cleared successfully!");
-            } catch (e) {
-                alert("Error clearing data: " + e.message);
-            } finally {
-                document.getElementById('importLoader').style.display = 'none';
-            }
+    const renderGrades = () => {
+        const grid = document.getElementById('grades-grid');
+        const grades = Array.from({length: 13}, (_, i) => `Grade ${i+1}`);
+        grid.innerHTML = grades.map(g => `
+            <div class="col-md-3 col-6">
+                <div class="grade-card shadow-sm" onclick="showClassDetail('${g}')">
+                    <i class="fas fa-folder fa-2x mb-2 text-warning"></i>
+                    <span class="fw-bold">${g}</span>
+                </div>
+            </div>
+        `).join('');
+    };
+    renderGrades();
+
+    window.showClassDetail = (gradeName) => {
+        document.getElementById('current-class-title').innerText = gradeName;
+        document.getElementById('grades-grid-container').classList.add('hidden');
+        document.getElementById('class-detail').classList.remove('hidden');
+        renderClassTable(gradeName);
+    };
+
+    const renderClassTable = (grade) => {
+        const filtered = allStudents.filter(s => s.grade === grade).sort((a,b) => a.studentID - b.studentID);
+        const tbody = document.getElementById('class-tbody');
+        tbody.innerHTML = "";
+        document.getElementById('class-count').innerText = `${filtered.length} Students`;
+        
+        filtered.forEach(s => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${s.studentID}</td>
+                    <td class="fw-bold">${s.name}</td>
+                    <td><span class="house-badge ${getHouseClass(s.house)}">${s.house}</span></td>
+                    <td>${s.phone || '-'}</td>
+                    <td><button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
+        });
+    };
+
+    window.backToGrades = () => {
+        document.getElementById('grades-grid-container').classList.remove('hidden');
+        document.getElementById('class-detail').classList.add('hidden');
+    };
+
+    const getHouseName = (id, csvHouse = "") => {
+        if (csvHouse && csvHouse.trim() !== "") return csvHouse.trim();
+        const num = parseInt(id) % 3;
+        if(num === 0) return "සීල";
+        if(num === 1) return "සමාධි";
+        return "ප්‍රඥා";
+    };
+
+    const getHouseClass = (h) => {
+        if(h === "සීල") return "house-sila";
+        if(h === "සමාධි") return "house-samadhi";
+        return "house-pragna";
+    };
+
+    onSnapshot(query(colRef, orderBy("createdAt", "desc")), (snap) => {
+        allStudents = [];
+        const gradesSet = new Set();
+        snap.forEach(doc => {
+            const data = { id: doc.id, ...doc.data() };
+            allStudents.push(data);
+            gradesSet.add(data.grade);
+        });
+        renderDashboardTable(allStudents);
+        document.getElementById('total-students').innerText = allStudents.length;
+        document.getElementById('total-grades').innerText = gradesSet.size;
+        
+        // If viewing a class, refresh it
+        const currentTitle = document.getElementById('current-class-title').innerText;
+        if(!document.getElementById('class-detail').classList.contains('hidden')) {
+            renderClassTable(currentTitle);
         }
+    });
+
+    const renderDashboardTable = (data) => {
+        const tbody = document.getElementById('dash-tbody');
+        tbody.innerHTML = data.slice(0, 100).map(s => `
+            <tr>
+                <td><span class="badge bg-light text-dark border">${s.grade}</span></td>
+                <td class="fw-bold">${s.studentID}</td>
+                <td>${s.name}</td>
+                <td><span class="house-badge ${getHouseClass(s.house)}">${s.house}</span></td>
+                <td><button class="btn btn-sm text-danger" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button></td>
+            </tr>
+        `).join('');
     };
 
-    // IMPORT FROM CSV
-    document.getElementById('csvFileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+    window.handleCSV = (input) => {
+        const file = input.files[0];
+        if(!file) return;
 
+        const gradeName = prompt("මෙම CSV ගොනුවේ ඇති සියලුම සිසුන් අයත් වන පන්තිය කුමක්ද? (උදා: Grade 7)", "Grade 7");
+        if(!gradeName) return;
+
+        toggleLoader(true, "දත්ත පද්ධතියට එක් කරමින්...");
         const reader = new FileReader();
-        reader.onload = async function(event) {
-            const text = event.target.result;
-            const rows = text.split('\n');
-            document.getElementById('importLoader').style.display = 'block';
+        reader.onload = async (e) => {
+            const lines = e.target.result.split('\n');
+            const batch = writeBatch(db);
+            let count = 0;
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i].split(',');
-                if (row.length >= 3) {
-                    const grade = row[0].trim();
-                    const stuID = row[1].trim();
-                    const name = row[2].trim();
-                    
-                    if (name.toLowerCase() === 'name' || grade.toLowerCase().includes('grade')) continue;
-                    if (name === "" || grade === "") continue;
+            for(let i = 2; i < lines.length; i++) { // Header skip
+                const cols = lines[i].split(',');
+                if(cols.length < 2) continue;
 
-                    try {
-                        await addDoc(studentsCol, { 
-                            name,
-                            studentID: stuID,
-                            grade, 
-                            attendance: {},
-                            createdAt: new Date() 
-                        });
-                    } catch (err) { console.error("Error adding row: ", err); }
-                }
+                const sid = cols[0]?.trim(); // ඇතුළත් වීමේ අංකය (ID)
+                const name = cols[1]?.trim(); // නම
+                const phone = cols[5]?.trim(); // WhatsApp Number
+                const house = cols[7]?.trim(); // නිවාසය
+
+                if(!sid || !name) continue;
+
+                const newRef = doc(colRef);
+                batch.set(newRef, {
+                    studentID: sid,
+                    name: name,
+                    phone: phone || "",
+                    grade: gradeName,
+                    house: getHouseName(sid, house),
+                    createdAt: new Date()
+                });
+                count++;
+                if(count % 400 === 0) await batch.commit();
             }
-            document.getElementById('importLoader').style.display = 'none';
-            alert("Import Finished!");
+            await batch.commit();
+            toggleLoader(false);
+            alert(`සාර්ථකයි! සිසුන් ${count} දෙනෙකු පද්ධතියට එක් කළා.`);
+            input.value = "";
         };
         reader.readAsText(file);
-    });
-
-    // REAL-TIME READ
-    const q = query(studentsCol, orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-        const tableBody = document.getElementById('studentTable');
-        const totalCount = document.getElementById('totalCount');
-        const todayCount = document.getElementById('todayCount');
-        let count = 0; let today = 0;
-        const now = new Date().toLocaleDateString();
-
-        tableBody.innerHTML = "";
-        snapshot.forEach((snap) => {
-            const data = snap.data();
-            const firebaseId = snap.id;
-            const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : "N/A";
-            if(dateStr === now) today++;
-            count++;
-
-            const tr = document.createElement('tr');
-            // Mapping data to the visual order: Grade, Index No, Name
-            tr.innerHTML = `
-                <td><span class="badge bg-light text-dark border">${data.name}</span></td>
-                <td>${data.studentID || 'N/A'}</td>
-                <td class="fw-bold text-primary">${data.grade}</td>
-                <td>${dateStr}</td>
-                <td>
-                    <button class="btn btn-sm btn-info text-white btn-view me-1" data-id="${firebaseId}">
-                        <i class="fas fa-eye"></i> View Profile
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger btn-del" data-id="${firebaseId}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>`;
-            tableBody.appendChild(tr);
-        });
-        totalCount.innerText = count;
-        todayCount.innerText = today;
-
-        document.querySelectorAll('.btn-view').forEach(btn => {
-            btn.onclick = () => showStudentProfile(btn.getAttribute('data-id'));
-        });
-
-        document.querySelectorAll('.btn-del').forEach(btn => {
-            btn.onclick = async () => {
-                if(confirm("Delete student?")) await deleteDoc(doc(db, "students", btn.getAttribute('data-id')));
-            };
-        });
-    });
-
-    async function showStudentProfile(firebaseId) {
-        const docRef = doc(db, "students", firebaseId);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const container = document.getElementById('profileContent');
-            
-            container.innerHTML = `
-                <div class="profile-header">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h4 class="mb-1">${data.grade}</h4>
-                            <p class="text-muted mb-0">Index No: ${data.studentID || 'N/A'}</p>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <span class="badge bg-primary fs-6">${data.name}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12">
-                        <h6><i class="fas fa-calendar-check text-success me-2"></i>Attendance Tracking</h6>
-                        <div class="p-3 bg-light rounded border">
-                            <p class="small text-muted mb-3">Student attendance tracking for the current year:</p>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-bordered bg-white text-center">
-                                    <thead>
-                                        <tr class="small bg-light">
-                                            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
-                                            <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-                                            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            profileModal.show();
-        }
-    }
-
-    // SEARCH
-    document.getElementById('searchInput').onkeyup = (e) => {
-        const val = e.target.value.toLowerCase();
-        document.querySelectorAll('#studentTable tr').forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
-        });
     };
 
-    // EXPORT
-    window.exportCSV = () => {
-        let csv = "Grade,Index No,Name,Joined Date\n";
-        document.querySelectorAll('#studentTable tr').forEach(row => {
-            csv += `${row.cells[0].innerText},${row.cells[1].innerText},${row.cells[2].innerText},${row.cells[3].innerText}\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'students_export.csv'; a.click();
+    document.getElementById('dashSearch').addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        const filtered = allStudents.filter(s => s.name.toLowerCase().includes(val) || s.studentID.toString().includes(val) || s.grade.toLowerCase().includes(val));
+        renderDashboardTable(filtered);
+    });
+
+    window.deleteStudent = async (id) => {
+        if(confirm("මකා දැමීමට අවශ්‍යද?")) {
+            toggleLoader(true, "මකා දමමින්...");
+            await deleteDoc(doc(db, "students", id));
+            toggleLoader(false);
+        }
+    };
+
+    window.deleteAllData = async () => {
+        if(confirm("සියලුම දත්ත මකා දැමීමට අවශ්‍යද?")) {
+            toggleLoader(true, "සියල්ල මකා දමමින්...");
+            const snap = await getDocs(colRef);
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            toggleLoader(false);
+        }
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
