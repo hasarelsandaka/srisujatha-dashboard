@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sri Sujatha Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-color: #4e73df; --bg-color: #f8f9fc; --sidebar-color: #224abe; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); }
+        .sidebar { height: 100vh; background: linear-gradient(180deg, var(--sidebar-color) 10%, #224abe 100%); color: white; position: fixed; width: 250px; padding-top: 20px; }
+        .main-content { margin-left: 250px; padding: 30px; }
+        .card-stat { border-left: 4px solid var(--primary-color); border-radius: 10px; }
+        .table-container { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15); }
+        .profile-header { background: #f8f9fc; border-radius: 10px; padding: 15px; margin-bottom: 20px; border-left: 5px solid var(--primary-color); }
+        @media (max-width: 768px) { .sidebar { display: none; } .main-content { margin-left: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="text-center mb-4">
+        <i class="fas fa-graduation-cap fa-3x mb-2"></i>
+        <h4>SRI SUJATHA</h4>
+        <small>Admin Panel</small>
+    </div>
+    <hr>
+    <nav class="nav flex-column px-3">
+        <a class="nav-link text-white active" href="#"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+    </nav>
+</div>
+
+<div class="main-content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Student Directory</h1>
+        <div>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+            <button class="btn btn-sm btn-info shadow-sm me-2 text-white" onclick="document.getElementById('csvFileInput').click()">
+                <i class="fas fa-upload fa-sm"></i> Import from CSV
+            </button>
+            <button class="btn btn-sm btn-success shadow-sm me-2" onclick="exportCSV()">
+                <i class="fas fa-download fa-sm"></i> Export to CSV
+            </button>
+            <button class="btn btn-sm btn-danger shadow-sm" id="btnClearAll">
+                <i class="fas fa-trash-alt fa-sm"></i> Clear All Data
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4 text-center">
+        <div class="col-md-6 mb-4">
+            <div class="card card-stat shadow h-100 py-3">
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Students</div>
+                <div class="h2 mb-0 font-weight-bold text-gray-800" id="totalCount">0</div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card card-stat shadow h-100 py-3" style="border-left-color: #1cc88a;">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">New Today</div>
+                <div class="h2 mb-0 font-weight-bold text-gray-800" id="todayCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Register Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Quick Register</h5>
+            <div class="row g-3">
+                <div class="col-md-4"><input type="text" id="stuName" class="form-control" placeholder="Full Name"></div>
+                <div class="col-md-3"><input type="text" id="stuID" class="form-control" placeholder="Index No (e.g. 3841)"></div>
+                <div class="col-md-3">
+                    <select id="stuGrade" class="form-select">
+                        <option value="">Select Grade</option>
+                        <option>Grade 1</option><option>Grade 2</option><option>Grade 3</option>
+                        <option>Grade 4</option><option>Grade 5</option>
+                        <option>Grade 6</option><option>Grade 7</option><option>Grade 8</option>
+                        <option>Grade 9</option><option>Grade 10</option><option>Grade 11</option>
+                        <option>Grade 12</option><option>Grade 13</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><button class="btn btn-primary w-100" id="btnSave">Add Student</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container shadow-sm text-center" id="importLoader" style="display:none">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Processing, please wait...</p>
+    </div>
+
+    <!-- Main Student List -->
+    <div class="table-container shadow-sm">
+        <div class="d-flex justify-content-between mb-3">
+            <h6>Student List</h6>
+            <input type="text" id="searchInput" class="form-control w-25" placeholder="Search by name, ID or Grade...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <!-- Columns renamed to match the underlying data placement -->
+                        <th>Grade</th>
+                        <th>Index No</th>
+                        <th>Name</th>
+                        <th>Joined Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Student Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i>Student Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="profileContent">
+                <!-- Profile data will be injected here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, doc, deleteDoc, query, orderBy, onSnapshot, getDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDCh27_ET3I_ovDyhhxCJr2yeMH3YnC1Pc",
+        authDomain: "srisujathadb.firebaseapp.com",
+        projectId: "srisujathadb",
+        storageBucket: "srisujathadb.firebasestorage.app",
+        messagingSenderId: "907198039870",
+        appId: "1:907198039870:web:6209a0d295bbf6e7000e6f",
+        measurementId: "G-3MYFRDYZR0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const studentsCol = collection(db, "students");
+    const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+
+    // ADD SINGLE STUDENT
+    document.getElementById('btnSave').onclick = async () => {
+        const name = document.getElementById('stuName').value;
+        const id = document.getElementById('stuID').value;
+        const grade = document.getElementById('stuGrade').value;
+        if(!id || !name || !grade) { alert("Please fill all fields!"); return; }
+        try {
+            await addDoc(studentsCol, { 
+                studentID: id, 
+                name, 
+                grade, 
+                attendance: {}, 
+                createdAt: new Date() 
+            });
+            document.getElementById('stuID').value = "";
+            document.getElementById('stuName').value = "";
+            document.getElementById('stuGrade').value = "";
+        } catch (e) { alert("Error: " + e.message); }
+    };
+
+    // CLEAR ALL DATA
+    document.getElementById('btnClearAll').onclick = async () => {
+        if (confirm("WARNING: Are you sure you want to delete ALL students? This action cannot be undone.")) {
+            document.getElementById('importLoader').style.display = 'block';
+            try {
+                const snapshot = await getDocs(studentsCol);
+                const batch = writeBatch(db);
+                
+                snapshot.forEach((studentDoc) => {
+                    batch.delete(studentDoc.ref);
+                });
+
+                await batch.commit();
+                alert("All data cleared successfully!");
+            } catch (e) {
+                alert("Error clearing data: " + e.message);
+            } finally {
+                document.getElementById('importLoader').style.display = 'none';
+            }
+        }
+    };
+
+    // IMPORT FROM CSV
+    document.getElementById('csvFileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+            const text = event.target.result;
+            const rows = text.split('\n');
+            document.getElementById('importLoader').style.display = 'block';
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i].split(',');
+                if (row.length >= 3) {
+                    const grade = row[0].trim();
+                    const stuID = row[1].trim();
+                    const name = row[2].trim();
+                    
+                    if (name.toLowerCase() === 'name' || grade.toLowerCase().includes('grade')) continue;
+                    if (name === "" || grade === "") continue;
+
+                    try {
+                        await addDoc(studentsCol, { 
+                            name,
+                            studentID: stuID,
+                            grade, 
+                            attendance: {},
+                            createdAt: new Date() 
+                        });
+                    } catch (err) { console.error("Error adding row: ", err); }
+                }
+            }
+            document.getElementById('importLoader').style.display = 'none';
+            alert("Import Finished!");
+        };
+        reader.readAsText(file);
+    });
+
+    // REAL-TIME READ
+    const q = query(studentsCol, orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+        const tableBody = document.getElementById('studentTable');
+        const totalCount = document.getElementById('totalCount');
+        const todayCount = document.getElementById('todayCount');
+        let count = 0; let today = 0;
+        const now = new Date().toLocaleDateString();
+
+        tableBody.innerHTML = "";
+        snapshot.forEach((snap) => {
+            const data = snap.data();
+            const firebaseId = snap.id;
+            const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : "N/A";
+            if(dateStr === now) today++;
+            count++;
+
+            const tr = document.createElement('tr');
+            // Mapping data to the visual order: Grade, Index No, Name
+            tr.innerHTML = `
+                <td><span class="badge bg-light text-dark border">${data.name}</span></td>
+                <td>${data.studentID || 'N/A'}</td>
+                <td class="fw-bold text-primary">${data.grade}</td>
+                <td>${dateStr}</td>
+                <td>
+                    <button class="btn btn-sm btn-info text-white btn-view me-1" data-id="${firebaseId}">
+                        <i class="fas fa-eye"></i> View Profile
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger btn-del" data-id="${firebaseId}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>`;
+            tableBody.appendChild(tr);
+        });
+        totalCount.innerText = count;
+        todayCount.innerText = today;
+
+        document.querySelectorAll('.btn-view').forEach(btn => {
+            btn.onclick = () => showStudentProfile(btn.getAttribute('data-id'));
+        });
+
+        document.querySelectorAll('.btn-del').forEach(btn => {
+            btn.onclick = async () => {
+                if(confirm("Delete student?")) await deleteDoc(doc(db, "students", btn.getAttribute('data-id')));
+            };
+        });
+    });
+
+    async function showStudentProfile(firebaseId) {
+        const docRef = doc(db, "students", firebaseId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const container = document.getElementById('profileContent');
+            
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="mb-1">${data.grade}</h4>
+                            <p class="text-muted mb-0">Index No: ${data.studentID || 'N/A'}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <span class="badge bg-primary fs-6">${data.name}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6><i class="fas fa-calendar-check text-success me-2"></i>Attendance Tracking</h6>
+                        <div class="p-3 bg-light rounded border">
+                            <p class="small text-muted mb-3">Student attendance tracking for the current year:</p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered bg-white text-center">
+                                    <thead>
+                                        <tr class="small bg-light">
+                                            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+                                            <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                                            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            profileModal.show();
+        }
+    }
+
+    // SEARCH
+    document.getElementById('searchInput').onkeyup = (e) => {
+        const val = e.target.value.toLowerCase();
+        document.querySelectorAll('#studentTable tr').forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+        });
+    };
+
+    // EXPORT
+    window.exportCSV = () => {
+        let csv = "Grade,Index No,Name,Joined Date\n";
+        document.querySelectorAll('#studentTable tr').forEach(row => {
+            csv += `${row.cells[0].innerText},${row.cells[1].innerText},${row.cells[2].innerText},${row.cells[3].innerText}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'students_export.csv'; a.click();
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
