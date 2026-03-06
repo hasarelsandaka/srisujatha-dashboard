@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sri Sujatha Student Database</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary-color: #4e73df; --bg-color: #f8f9fc; --sidebar-color: #224abe; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); overflow-x: hidden; }
+        
+        .sidebar { height: 100vh; background: linear-gradient(180deg, var(--sidebar-color) 10%, #1a3a9e 100%); color: white; position: fixed; width: 250px; padding-top: 20px; z-index: 1000; transition: 0.3s; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.7); border-radius: 5px; margin: 5px 15px; padding: 12px; transition: 0.3s; cursor: pointer; display: flex; align-items: center; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
+        
+        .main-content { margin-left: 250px; padding: 30px; min-height: 100vh; transition: 0.3s; }
+        .table-container { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e3e6f0; }
+        .grade-card { cursor: pointer; transition: 0.3s; border: 1px solid #e3e6f0; border-radius: 12px; background: white; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .grade-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); border-color: var(--primary-color); }
+        
+        .house-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .house-sila { background: #e3f2fd; color: #1976d2; }
+        .house-samadhi { background: #fff3e0; color: #ef6c00; }
+        .house-pragna { background: #f1f8e9; color: #388e3c; }
+        
+        .hidden { display: none !important; }
+        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .matrix-table-wrapper { overflow-x: auto; max-width: 100%; white-space: nowrap; }
+        .matrix-table th, .matrix-table td { text-align: center; vertical-align: middle; }
+        .matrix-table th:nth-child(1), .matrix-table td:nth-child(1),
+        .matrix-table th:nth-child(2), .matrix-table td:nth-child(2) { position: sticky; left: 0; background: white; z-index: 1; border-right: 2px solid #dee2e6; }
+        
+        .chart-container { position: relative; height: 300px; width: 100%; display: flex; justify-content: center; }
+        .top-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        
+        .mobile-toggle { display: none; font-size: 24px; cursor: pointer; color: var(--primary-color); margin-bottom: 20px; }
+        @media (max-width: 768px) { 
+            .sidebar { transform: translateX(-100%); } 
+            .sidebar.active { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 15px; } 
+            .mobile-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loader" class="loader-overlay hidden">
+    <div class="spinner-border text-primary"></div>
+    <div class="mt-3 fw-bold text-primary" id="loader-text">පද්ධතිය ක්‍රියාත්මක වේ...</div>
+</div>
+
+<div class="sidebar" id="sidebar">
+    <div class="text-center mb-4 mt-3">
+        <i class="fas fa-graduation-cap fa-3x mb-2 text-white"></i>
+        <h5 class="fw-bold mb-0">SRI SUJATHA</h5>
+        <p class="small opacity-75">STUDENT DATABASE</p>
+    </div>
+    <nav class="nav flex-column">
+        <div class="nav-link active" onclick="switchView('dashboard')" id="link-dash"><i class="fas fa-home me-2"></i> Dashboard</div>
+        <div class="nav-link" onclick="switchView('classes')" id="link-classes"><i class="fas fa-users me-2"></i> Classes (පන්ති)</div>
+        <div class="nav-link" onclick="switchView('analytics')" id="link-analytics"><i class="fas fa-chart-pie me-2"></i> Analytics (විශ්ලේෂණ)</div>
+    </nav>
+</div>
+
+<div class="main-content">
+    <i class="fas fa-bars mobile-toggle" onclick="toggleSidebar()"></i>
+    
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard-view">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <h3 class="fw-bold text-dark m-0">Dashboard</h3>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-success" onclick="openModal()"><i class="fas fa-user-plus me-1"></i> Add Student</button>
+                <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="handleCSV(this)">
+                <button class="btn btn-primary" onclick="document.getElementById('csvInput').click()"><i class="fas fa-upload me-1"></i> Import CSV</button>
+                <button class="btn btn-secondary" onclick="exportCSV()"><i class="fas fa-download me-1"></i> Export CSV</button>
+                <button class="btn btn-danger" onclick="deleteAllData()"><i class="fas fa-trash me-1"></i> සියල්ල මකන්න</button>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6"><div class="card p-3 border-0 border-start border-4 border-primary shadow-sm"><p class="text-muted small mb-1">මුළු ශිෂ්‍ය සංඛ්‍යාව</p><h2 class="fw-bold mb-0" id="total-students">0</h2></div></div>
+            <div class="col-md-6"><div class="card p-3 border-0 border-start border-4 border-success shadow-sm"><p class="text-muted small mb-1">සක්‍රීය ශ්‍රේණි</p><h2 class="fw-bold mb-0" id="total-grades">0</h2></div></div>
+        </div>
+
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">සියලුම සිසුන්</h5>
+                <input type="text" id="dashSearch" class="form-control w-25 shadow-sm" placeholder="සෙවීම...">
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover">
+                    <thead class="table-light sticky-top">
+                        <tr><th>ශ්‍රේණිය</th><th>අංකය</th><th>නම</th><th>නිවාසය</th><th>ක්‍රියා</th></tr>
+                    </thead>
+                    <tbody id="dash-tbody"></tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <button class="btn btn-sm btn-outline-primary" onclick="prevPage()">Previous</button>
+                <span id="page-info" class="text-muted small">Page 1</span>
+                <button class="btn btn-sm btn-outline-primary" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYTICS VIEW -->
+    <div id="analytics-view" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-dark m-0">Analytics (දත්ත විශ්ලේෂණය)</h3>
+            <button class="btn btn-primary btn-sm shadow-sm" onclick="loadAnalyticsData()"><i class="fas fa-sync-alt me-1"></i> Refresh Data</button>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-4 h-100">
+                    <h6 class="fw-bold text-muted mb-3 text-center">නිවාස අනුව සිසුන් සංඛ්‍යාව (Houses)</h6>
+                    <div class="chart-container"><canvas id="houseChart"></canvas></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-4 h-100">
+                    <h6 class="fw-bold text-muted mb-3 text-center">පන්ති අනුව සිසුන් සංඛ්‍යාව (Grades)</h6>
+                    <div class="chart-container"><canvas id="gradeChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-3 h-100">
+                    <h6 class="fw-bold text-success mb-3 border-bottom pb-2"><i class="fas fa-check-circle me-2"></i>වැඩිම පැමිණීමක් ඇති සිසුන් (Top 10)</h6>
+                    <div id="top-attendance-list">දත්ත ලබා ගනිමින්...</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm p-3 h-100">
+                    <h6 class="fw-bold text-warning mb-3 border-bottom pb-2"><i class="fas fa-leaf me-2"></i>වැඩිම වාර ගණනක් මල් ගෙන ආ සිසුන් (Top 10)</h6>
+                    <div id="top-flowers-list">දත්ත ලබා ගනිමින්...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLASSES VIEW -->
+    <div id="classes-view" class="hidden">
+        <div id="grades-grid-container"><h3 class="fw-bold text-dark mb-4">ශ්‍රේණිය තෝරන්න</h3><div class="row g-3" id="grades-grid"></div></div>
+
+        <div id="class-detail" class="hidden">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div><button class="btn btn-sm btn-outline-secondary mb-2" onclick="backToGrades()"><i class="fas fa-arrow-left"></i> පසුපසට</button><h3 class="fw-bold mb-0" id="current-class-title">Grade 7</h3></div>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item"><a class="nav-link active" onclick="switchTab('students')" id="tab-students">සිසුන්</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="switchTab('attendance')" id="tab-attendance">පැමිණීම</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-bold" onclick="switchTab('flowers')" id="tab-flowers">මල් (Flowers)</a></li>
+                <li class="nav-item"><a class="nav-link" onclick="switchTab('marks')" id="tab-marks">ලකුණු</a></li>
+            </ul>
+
+            <!-- Students Tab -->
+            <div class="table-container" id="tab-content-students">
+                <div class="table-responsive"><table class="table table-bordered align-middle"><thead class="table-dark"><tr><th>අංකය</th><th>නම</th><th>නිවාසය</th><th>WhatsApp</th></tr></thead><tbody id="class-tbody"></tbody></table></div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div class="table-container hidden" id="tab-content-attendance">
+                <div class="d-flex flex-wrap mb-3 gap-2 align-items-center bg-light p-3 rounded border">
+                    <h6 class="m-0 fw-bold me-3">දිනයක් ඇතුළත්/වෙනස් කරන්න:</h6>
+                    <input type="date" id="attendance-date" class="form-control w-auto border-primary">
+                    <button class="btn btn-primary btn-sm shadow-sm" onclick="openEditor('attendance')"><i class="fas fa-edit me-1"></i> Edit Date</button>
+                    <!-- NEW DELETE BUTTON -->
+                    <button class="btn btn-danger btn-sm shadow-sm" onclick="deleteMatrixData('attendance')"><i class="fas fa-trash-alt me-1"></i> Delete</button>
+                    
+                    <div class="ms-auto border-start ps-3"><input type="file" id="csvAttInput" accept=".csv" class="hidden" onchange="importMatrixCSV(this, 'attendance')"><button class="btn btn-warning btn-sm" onclick="document.getElementById('csvAttInput').click()"><i class="fas fa-file-excel me-1"></i> Import CSV</button></div>
+                </div>
+                <div class="matrix-table-wrapper border rounded"><table class="table table-bordered table-hover matrix-table m-0" id="attendance-matrix"></table></div>
+            </div>
+
+            <!-- Flowers Tab -->
+            <div class="table-container hidden" id="tab-content-flowers">
+                <div class="d-flex flex-wrap mb-3 gap-2 align-items-center bg-light p-3 rounded border">
+                    <h6 class="m-0 fw-bold me-3">මල් ගෙන ආ දිනයක් ඇතුළත්/වෙනස් කරන්න:</h6>
+                    <input type="date" id="flowers-date" class="form-control w-auto border-warning">
+                    <button class="btn btn-warning btn-sm shadow-sm" onclick="openEditor('flowers')"><i class="fas fa-edit me-1"></i> Edit Flowers</button>
+                    <!-- NEW DELETE BUTTON -->
+                    <button class="btn btn-danger btn-sm shadow-sm" onclick="deleteMatrixData('flowers')"><i class="fas fa-trash-alt me-1"></i> Delete</button>
+                    
+                    <div class="ms-auto border-start ps-3"><input type="file" id="csvFlwInput" accept=".csv" class="hidden" onchange="importMatrixCSV(this, 'flowers')"><button class="btn btn-warning btn-sm" onclick="document.getElementById('csvFlwInput').click()"><i class="fas fa-file-excel me-1"></i> Import CSV</button></div>
+                </div>
+                <div class="matrix-table-wrapper border rounded"><table class="table table-bordered table-hover matrix-table m-0" id="flowers-matrix"></table></div>
+            </div>
+
+            <!-- Marks Tab -->
+            <div class="table-container hidden" id="tab-content-marks">
+                <div class="d-flex flex-wrap mb-3 gap-2 align-items-center bg-light p-3 rounded border">
+                    <h6 class="m-0 fw-bold me-3">වාරයක් ඇතුළත්/වෙනස් කරන්න:</h6>
+                    <select id="marks-term" class="form-select w-auto border-primary"><option value="Term 1">1 වන වාරය</option><option value="Term 2">2 වන වාරය</option><option value="Term 3">3 වන වාරය</option></select>
+                    <button class="btn btn-primary btn-sm shadow-sm" onclick="openMarksEditor()"><i class="fas fa-edit me-1"></i> Edit Marks</button>
+                    <!-- NEW DELETE BUTTON -->
+                    <button class="btn btn-danger btn-sm shadow-sm" onclick="deleteMatrixData('marks')"><i class="fas fa-trash-alt me-1"></i> Delete</button>
+
+                    <div class="ms-auto border-start ps-3"><input type="file" id="csvMarksInput" accept=".csv" class="hidden" onchange="importMarksCSV(this)"><button class="btn btn-warning btn-sm" onclick="document.getElementById('csvMarksInput').click()"><i class="fas fa-file-excel me-1"></i> Import CSV</button></div>
+                </div>
+                <div class="matrix-table-wrapper border rounded"><table class="table table-bordered table-hover matrix-table m-0" id="marks-matrix"></table></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reusable Modal for Attendance & Flowers -->
+<div class="modal fade" id="editMatrixModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white" id="editMatrixHeader">
+        <h5 class="modal-title fw-bold" id="editMatrixTitle">ලකුණු කිරීම - <span id="editMatrixDateTxt"></span></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+        <input type="hidden" id="editMatrixType">
+        <table class="table table-bordered"><thead class="table-light"><tr><th>ID</th><th>නම</th><th class="text-center">ලකුණු කරන්න (Tick)</th></tr></thead><tbody id="edit-matrix-tbody"></tbody></table>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-success w-100" onclick="saveMatrixEdit()">Save Database</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Marks Modal -->
+<div class="modal fade" id="editMarksModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 class="modal-title fw-bold">ලකුණු ඇතුළත් කිරීම - <span id="editMarksTermTxt"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" style="max-height: 60vh; overflow-y: auto;"><table class="table table-bordered"><thead class="table-light"><tr><th>ID</th><th>නම</th><th>ලකුණු</th></tr></thead><tbody id="edit-marks-tbody"></tbody></table></div>
+      <div class="modal-footer"><button type="button" class="btn btn-success w-100" onclick="saveMarksEdit()">Save Database</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Student Add Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold" id="modalTitle">Add Student</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="studentForm" onsubmit="saveStudent(event)">
+                    <input type="hidden" id="edit-id">
+                    <div class="mb-2"><label>ඇතුළත් වීමේ අංකය (ID)</label><input type="text" id="s-id" class="form-control" required></div>
+                    <div class="mb-2"><label>නම (Name)</label><input type="text" id="s-name" class="form-control" required></div>
+                    <div class="mb-2"><label>ශ්‍රේණිය (Grade)</label><input type="text" id="s-grade" class="form-control" required></div>
+                    <div class="mb-2"><label>නිවාසය (House)</label><select id="s-house" class="form-select"><option value="සීල">සීල</option><option value="සමාධි">සමාධි</option><option value="ප්‍රඥා">ප්‍රඥා</option></select></div>
+                    <div class="mb-3"><label>WhatsApp අංකය</label><input type="text" id="s-phone" class="form-control"></div>
+                    <button type="submit" class="btn btn-primary w-100">Save Data</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, writeBatch, setDoc, getDoc, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const app = initializeApp({ apiKey: "AIzaSyDCh27_ET3I_ovDyhhxCJr2yeMH3YnC1Pc", authDomain: "srisujathadb.firebaseapp.com", projectId: "srisujathadb" });
+    const db = getFirestore(app);
+    const colRef = collection(db, "students");
+    
+    let allStudents = [], filteredStudents = [], currentPage = 1, currentGradeView = "";
+    const itemsPerPage = 50;
+    let myHouseChart = null, myGradeChart = null; 
+
+    window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('active');
+    const toggleLoader = (show, text = "") => { const l = document.getElementById('loader'); if(text) document.getElementById('loader-text').innerText = text; l.classList.toggle('hidden', !show); };
+
+    window.switchView = (view) => {
+        document.getElementById('dashboard-view').classList.toggle('hidden', view !== 'dashboard');
+        document.getElementById('classes-view').classList.toggle('hidden', view !== 'classes');
+        document.getElementById('analytics-view').classList.toggle('hidden', view !== 'analytics');
+        
+        document.getElementById('link-dash').classList.toggle('active', view === 'dashboard');
+        document.getElementById('link-classes').classList.toggle('active', view === 'classes');
+        document.getElementById('link-analytics').classList.toggle('active', view === 'analytics');
+        
+        if(view === 'analytics') loadAnalyticsData();
+        if(window.innerWidth <= 768) toggleSidebar();
+    };
+
+    window.switchTab = (tab) => {
+        ['students', 'attendance', 'flowers', 'marks'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.remove('active');
+            document.getElementById(`tab-content-${t}`).classList.add('hidden');
+        });
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
+        
+        if(tab === 'attendance') loadMatrixOverview('attendance');
+        if(tab === 'flowers') loadMatrixOverview('flowers');
+        if(tab === 'marks') loadMarksOverview();
+    };
+
+    // ==========================================
+    // CORE DASHBOARD & CRUD FUNCTIONS
+    // ==========================================
+    const renderGrades = () => { document.getElementById('grades-grid').innerHTML = Array.from({length: 13}, (_, i) => `Grade ${i+1}`).map(g => `<div class="col-md-3 col-6"><div class="grade-card shadow-sm" onclick="showClassDetail('${g}')"><i class="fas fa-folder fa-2x mb-2 text-warning"></i><span class="fw-bold">${g}</span></div></div>`).join(''); };
+    renderGrades();
+
+    window.showClassDetail = (gradeName) => {
+        currentGradeView = gradeName; document.getElementById('current-class-title').innerText = gradeName;
+        document.getElementById('grades-grid-container').classList.add('hidden'); document.getElementById('class-detail').classList.remove('hidden');
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('attendance-date').value = today; document.getElementById('flowers-date').value = today;
+        switchTab('students'); renderClassTable();
+    };
+    window.backToGrades = () => { currentGradeView = ""; document.getElementById('grades-grid-container').classList.remove('hidden'); document.getElementById('class-detail').classList.add('hidden'); };
+
+    const getHouseClass = (h) => h === "සීල" ? "house-sila" : (h === "සමාධි" ? "house-samadhi" : "house-pragna");
+    const getHouseName = (id, csvHouse = "") => { if (csvHouse && csvHouse.trim() !== "") return csvHouse.trim(); const num = parseInt(id) % 3; return num === 0 ? "සීල" : (num === 1 ? "සමාධි" : "ප්‍රඥා"); };
+
+    onSnapshot(query(colRef, orderBy("createdAt", "desc")), (snap) => {
+        allStudents = []; const gradesSet = new Set();
+        snap.forEach(doc => { const data = { id: doc.id, ...doc.data() }; allStudents.push(data); gradesSet.add(data.grade); });
+        filteredStudents = [...allStudents];
+        document.getElementById('total-students').innerText = allStudents.length; document.getElementById('total-grades').innerText = gradesSet.size;
+        renderDashboardTable();
+        if(!document.getElementById('class-detail').classList.contains('hidden') && document.getElementById('tab-students').classList.contains('active')) renderClassTable();
+    });
+
+    const renderDashboardTable = () => {
+        const tbody = document.getElementById('dash-tbody');
+        tbody.innerHTML = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => `<tr><td><span class="badge bg-light text-dark border">${s.grade}</span></td><td class="fw-bold">${s.studentID}</td><td>${s.name}</td><td><span class="house-badge ${getHouseClass(s.house)}">${s.house}</span></td><td><button class="btn btn-sm text-primary" onclick="openModal('${s.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-sm text-danger" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+        document.getElementById('page-info').innerText = `Page ${currentPage} of ${Math.ceil(filteredStudents.length/itemsPerPage) || 1}`;
+    };
+    window.nextPage = () => { if((currentPage * itemsPerPage) < filteredStudents.length) { currentPage++; renderDashboardTable(); } };
+    window.prevPage = () => { if(currentPage > 1) { currentPage--; renderDashboardTable(); } };
+
+    document.getElementById('dashSearch').addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        filteredStudents = allStudents.filter(s => s.name.toLowerCase().includes(val) || s.studentID.toString().includes(val) || s.grade.toLowerCase().includes(val));
+        currentPage = 1; renderDashboardTable();
+    });
+
+    const renderClassTable = () => { document.getElementById('class-tbody').innerHTML = allStudents.filter(s => s.grade === currentGradeView).sort((a,b) => a.studentID - b.studentID).map(s => `<tr><td>${s.studentID}</td><td class="fw-bold">${s.name}</td><td><span class="house-badge ${getHouseClass(s.house)}">${s.house}</span></td><td>${s.phone || '-'}</td></tr>`).join(''); };
+
+    window.openModal = (id = null) => {
+        document.getElementById('studentForm').reset(); document.getElementById('edit-id').value = id || ""; document.getElementById('modalTitle').innerText = id ? "Edit Student" : "Add Student";
+        if(id) { const s = allStudents.find(x => x.id === id); if(s) { document.getElementById('s-id').value = s.studentID; document.getElementById('s-name').value = s.name; document.getElementById('s-grade').value = s.grade; document.getElementById('s-house').value = s.house; document.getElementById('s-phone').value = s.phone || ""; } }
+        new bootstrap.Modal(document.getElementById('studentModal')).show();
+    };
+
+    window.saveStudent = async (e) => {
+        e.preventDefault(); const id = document.getElementById('edit-id').value;
+        const data = { studentID: document.getElementById('s-id').value, name: document.getElementById('s-name').value, grade: document.getElementById('s-grade').value, house: document.getElementById('s-house').value, phone: document.getElementById('s-phone').value };
+        toggleLoader(true, "Saving Data...");
+        if(id) await updateDoc(doc(db, "students", id), data); else { data.createdAt = new Date(); await addDoc(colRef, data); }
+        toggleLoader(false); bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
+    };
+
+    window.deleteStudent = async (id) => { if(confirm("මකා දැමීමට අවශ්‍යද?")) { toggleLoader(true, "මකා දමමින්..."); await deleteDoc(doc(db, "students", id)); toggleLoader(false); } };
+    window.deleteAllData = async () => { if(confirm("සියලුම දත්ත මකා දැමීමට අවශ්‍යද? මෙය නැවත හැරවිය නොහැක!")) { toggleLoader(true, "සියල්ල මකා දමමින්..."); const snap = await getDocs(colRef); const batch = writeBatch(db); snap.forEach(d => batch.delete(d.ref)); await batch.commit(); toggleLoader(false); } };
+
+    // ==========================================
+    // ATTENDANCE & FLOWERS (MATRIX LOGIC)
+    // ==========================================
+    window.loadMatrixOverview = async (collectionName) => {
+        if(!currentGradeView) return; toggleLoader(true, "ලේඛනය සකසමින්...");
+        const students = allStudents.filter(s => s.grade === currentGradeView).sort((a,b) => a.studentID - b.studentID);
+        const snap = await getDocs(query(collection(db, collectionName), where("grade", "==", currentGradeView)));
+        
+        let matrixData = {}; let datesSet = new Set();
+        snap.forEach(doc => { const d = doc.data(); datesSet.add(d.date); matrixData[d.date] = d.records || {}; });
+        let dates = Array.from(datesSet).sort(); 
+
+        const table = document.getElementById(`${collectionName}-matrix`);
+        if(dates.length === 0) { table.innerHTML = "<tr><td class='p-3 text-muted'>දත්ත නොමැත. අලුත් දිනයක් ඇතුළත් කරන්න.</td></tr>"; toggleLoader(false); return; }
+
+        let thead = `<thead class="table-dark"><tr><th>ID</th><th>නම</th>` + dates.map(d => `<th>${d}</th>`).join('') + `</tr></thead>`;
+        let iconClass = collectionName === 'flowers' ? 'fa-leaf text-success' : 'fa-check text-success';
+        let tbody = `<tbody>` + students.map(s => {
+            let row = `<tr><td>${s.studentID}</td><td class="fw-bold text-start">${s.name}</td>`;
+            dates.forEach(d => { row += `<td>${matrixData[d][s.id] ? `<i class="fas ${iconClass}"></i>` : '<i class="fas fa-times text-danger"></i>'}</td>`; });
+            return row + `</tr>`;
+        }).join('') + `</tbody>`;
+        table.innerHTML = thead + tbody; toggleLoader(false);
+    };
+
+    window.openEditor = async (collectionName) => {
+        const dateVal = document.getElementById(`${collectionName}-date`).value;
+        if(!dateVal) { alert("කරුණාකර දිනයක් තෝරන්න!"); return; }
+        
+        document.getElementById('editMatrixType').value = collectionName;
+        document.getElementById('editMatrixDateTxt').innerText = dateVal;
+        document.getElementById('editMatrixHeader').className = `modal-header text-white ${collectionName === 'flowers' ? 'bg-warning' : 'bg-primary'}`;
+        document.getElementById('editMatrixTitle').innerHTML = `${collectionName === 'flowers' ? 'මල් ලකුණු කිරීම' : 'පැමිණීම ලකුණු කිරීම'} - <span id="editMatrixDateTxt">${dateVal}</span>`;
+
+        const students = allStudents.filter(s => s.grade === currentGradeView).sort((a,b) => a.studentID - b.studentID);
+        toggleLoader(true);
+        const docSnap = await getDoc(doc(db, collectionName, `${currentGradeView}_${dateVal}`));
+        const existing = docSnap.exists() ? docSnap.data().records : null;
+
+        document.getElementById('edit-matrix-tbody').innerHTML = students.map(s => {
+            const isChecked = existing ? existing[s.id] : true; 
+            return `<tr><td>${s.studentID}</td><td>${s.name}</td><td class="text-center"><input type="checkbox" class="form-check-input matrix-edit-chk" data-id="${s.id}" ${isChecked ? 'checked' : ''} style="transform: scale(1.5);"></td></tr>`;
+        }).join('');
+        toggleLoader(false);
+        new bootstrap.Modal(document.getElementById('editMatrixModal')).show();
+    };
+
+    window.saveMatrixEdit = async () => {
+        const collectionName = document.getElementById('editMatrixType').value;
+        const dateVal = document.getElementById('editMatrixDateTxt').innerText;
+        toggleLoader(true, "සේව් වෙමින් පවතී...");
+        let records = {};
+        document.querySelectorAll('.matrix-edit-chk').forEach(chk => { records[chk.getAttribute('data-id')] = chk.checked; });
+        
+        await setDoc(doc(db, collectionName, `${currentGradeView}_${dateVal}`), { grade: currentGradeView, date: dateVal, records: records, updatedAt: new Date() }, { merge: true });
+        bootstrap.Modal.getInstance(document.getElementById('editMatrixModal')).hide();
+        loadMatrixOverview(collectionName); 
+    };
+
+    // ==========================================
+    // MARKS (MATRIX LOGIC)
+    // ==========================================
+    window.loadMarksOverview = async () => {
+        if(!currentGradeView) return; toggleLoader(true, "ලේඛනය සකසමින්...");
+        const students = allStudents.filter(s => s.grade === currentGradeView).sort((a,b) => a.studentID - b.studentID);
+        const snap = await getDocs(query(collection(db, "marks"), where("grade", "==", currentGradeView)));
+        
+        let marksData = {}; let termsSet = new Set();
+        snap.forEach(doc => { const d = doc.data(); termsSet.add(d.term); marksData[d.term] = d.records || {}; });
+        let terms = Array.from(termsSet).sort(); 
+
+        const table = document.getElementById('marks-matrix');
+        if(terms.length === 0) { table.innerHTML = "<tr><td class='p-3 text-muted'>දත්ත නොමැත. අලුත් වාරයක් ඇතුළත් කරන්න.</td></tr>"; toggleLoader(false); return; }
+
+        let thead = `<thead class="table-dark"><tr><th>ID</th><th>නම</th>` + terms.map(t => `<th>${t}</th>`).join('') + `</tr></thead>`;
+        let tbody = `<tbody>` + students.map(s => {
+            let row = `<tr><td>${s.studentID}</td><td class="fw-bold text-start">${s.name}</td>`;
+            terms.forEach(t => { row += `<td>${marksData[t][s.id] || '-'}</td>`; });
+            return row + `</tr>`;
+        }).join('') + `</tbody>`;
+        table.innerHTML = thead + tbody; toggleLoader(false);
+    };
+
+    window.openMarksEditor = async () => {
+        const termVal = document.getElementById('marks-term').value;
+        document.getElementById('editMarksTermTxt').innerText = termVal;
+        const students = allStudents.filter(s => s.grade === currentGradeView).sort((a,b) => a.studentID - b.studentID);
+        toggleLoader(true);
+        const docSnap = await getDoc(doc(db, "marks", `${currentGradeView}_${termVal}`));
+        const existing = docSnap.exists() ? docSnap.data().records : {};
+
+        document.getElementById('edit-marks-tbody').innerHTML = students.map(s => `<tr><td>${s.studentID}</td><td>${s.name}</td><td><input type="text" class="form-control marks-edit-inp text-center" data-id="${s.id}" value="${existing[s.id] || ''}"></td></tr>`).join('');
+        toggleLoader(false); new bootstrap.Modal(document.getElementById('editMarksModal')).show();
+    };
+
+    window.saveMarksEdit = async () => {
+        const termVal = document.getElementById('editMarksTermTxt').innerText;
+        toggleLoader(true, "සේව් වෙමින් පවතී...");
+        let records = {};
+        document.querySelectorAll('.marks-edit-inp').forEach(inp => { records[inp.getAttribute('data-id')] = inp.value; });
+        await setDoc(doc(db, "marks", `${currentGradeView}_${termVal}`), { grade: currentGradeView, term: termVal, records: records, updatedAt: new Date() }, { merge: true });
+        bootstrap.Modal.getInstance(document.getElementById('editMarksModal')).hide(); loadMarksOverview();
+    };
+
+    // ==========================================
+    // DELETE DATE / TERM DATA LOGIC (NEW)
+    // ==========================================
+    window.deleteMatrixData = async (collectionName) => {
+        let identifier = "";
+        let msg = "";
+        
+        if (collectionName === 'marks') {
+            identifier = document.getElementById('marks-term').value;
+            msg = `මෙම පන්තියේ '${identifier}' හි දත්ත සම්පූර්ණයෙන්ම මකා දැමීමට ඔබට අවශ්‍යද?`;
+        } else {
+            identifier = document.getElementById(`${collectionName}-date`).value;
+            if(!identifier) { alert("කරුණාකර දිනයක් තෝරන්න!"); return; }
+            msg = `මෙම පන්තියේ '${identifier}' දිනයේ දත්ත සම්පූර්ණයෙන්ම මකා දැමීමට ඔබට අවශ්‍යද?`;
+        }
+
+        if(confirm(msg)) {
+            toggleLoader(true, "දත්ත මකා දමමින්...");
+            await deleteDoc(doc(db, collectionName, `${currentGradeView}_${identifier}`));
+            toggleLoader(false);
+            
+            if(collectionName === 'marks') loadMarksOverview();
+            else loadMatrixOverview(collectionName);
+        }
+    };
+
+    // ==========================================
+    // CSV IMPORT & EXPORT LOGIC
+    // ==========================================
+    const parseCSVLine = (text) => text.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+
+    window.exportCSV = () => {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFFStudent ID,Name,Grade,House,Phone\n";
+        allStudents.forEach(s => { csvContent += `"${s.studentID}","${s.name}","${s.grade}","${s.house}","${s.phone || ''}"\n`; });
+        const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "sri_sujatha_students.csv");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    };
+
+    window.handleCSV = (input) => {
+        const file = input.files[0]; if(!file) return;
+        const gradeName = prompt("මෙම CSV ගොනුවේ ඇති සියලුම සිසුන් අයත් වන පන්තිය කුමක්ද? (උදා: Grade 7)"); if(!gradeName) return;
+        toggleLoader(true, "දත්ත පද්ධතියට එක් කරමින්...");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const lines = e.target.result.split('\n'); const batch = writeBatch(db); let count = 0;
+            for(let i = 2; i < lines.length; i++) {
+                const cols = lines[i].split(','); if(cols.length < 2) continue;
+                const sid = cols[0]?.trim(); const name = cols[1]?.trim(); const phone = cols[5]?.trim(); const house = cols[7]?.trim(); 
+                if(!sid || !name) continue;
+                batch.set(doc(colRef), { studentID: sid, name: name, phone: phone || "", grade: gradeName, house: getHouseName(sid, house), createdAt: new Date() });
+                count++; if(count % 400 === 0) await batch.commit();
+            }
+            await batch.commit(); toggleLoader(false); alert(`සාර්ථකයි! සිසුන් ${count} දෙනෙකු පද්ධතියට එක් කළා.`); input.value = "";
+        }; reader.readAsText(file);
+    };
+
+    window.importMatrixCSV = (input, collectionName) => {
+        const file = input.files[0]; if(!file) return; toggleLoader(true, "දත්ත Import කරමින්...");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const lines = e.target.result.split('\n').filter(l => l.trim()); if(lines.length < 2) { toggleLoader(false); return; }
+            const headers = parseCSVLine(lines[0]); const dates = headers.slice(2);
+            let dateRecords = {}; dates.forEach(d => dateRecords[d] = {});
+            const idMap = {}; allStudents.filter(s => s.grade === currentGradeView).forEach(s => idMap[s.studentID] = s.id);
+            for(let i = 1; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]); const fbId = idMap[cols[0]]; if(!fbId) continue;
+                dates.forEach((date, index) => { const val = cols[2 + index] || ""; dateRecords[date][fbId] = (val === "1" || val.toUpperCase() === "P" || val.toUpperCase() === "TRUE"); });
+            }
+            const batch = writeBatch(db);
+            dates.forEach(date => { batch.set(doc(db, collectionName, `${currentGradeView}_${date}`), { grade: currentGradeView, date: date, records: dateRecords[date], updatedAt: new Date() }, { merge: true }); });
+            await batch.commit(); input.value = ""; toggleLoader(false); alert("✅ සාර්ථකයි!"); loadMatrixOverview(collectionName);
+        }; reader.readAsText(file);
+    };
+
+    window.importMarksCSV = (input) => {
+        const file = input.files[0]; if(!file) return; toggleLoader(true, "ලකුණු දත්ත Import කරමින්...");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const lines = e.target.result.split('\n').filter(l => l.trim()); if(lines.length < 2) { toggleLoader(false); return; }
+            const headers = parseCSVLine(lines[0]); const terms = headers.slice(2);
+            let termRecords = {}; terms.forEach(t => termRecords[t] = {});
+            const idMap = {}; allStudents.filter(s => s.grade === currentGradeView).forEach(s => idMap[s.studentID] = s.id);
+            for(let i = 1; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]); const fbId = idMap[cols[0]]; if(!fbId) continue;
+                terms.forEach((term, index) => { termRecords[term][fbId] = cols[2 + index] || ""; });
+            }
+            const batch = writeBatch(db);
+            terms.forEach(term => { batch.set(doc(db, "marks", `${currentGradeView}_${term}`), { grade: currentGradeView, term: term, records: termRecords[term], updatedAt: new Date() }, { merge: true }); });
+            await batch.commit(); input.value = ""; toggleLoader(false); alert("✅ සාර්ථකයි!"); loadMarksOverview();
+        }; reader.readAsText(file);
+    };
+
+    // ==========================================
+    // ANALYTICS LOGIC
+    // ==========================================
+    window.loadAnalyticsData = async () => {
+        toggleLoader(true, "දත්ත විශ්ලේෂණය කරමින්...");
+        const housesData = { "සීල": 0, "සමාධි": 0, "ප්‍රඥා": 0 }; const gradesData = {};
+        allStudents.forEach(s => {
+            if(housesData[s.house] !== undefined) housesData[s.house]++;
+            const gNum = parseInt(s.grade.replace('Grade ', '')); if(gNum) gradesData[gNum] = (gradesData[gNum] || 0) + 1;
+        });
+
+        if(myHouseChart) myHouseChart.destroy();
+        myHouseChart = new Chart(document.getElementById('houseChart'), { type: 'pie', data: { labels: Object.keys(housesData), datasets: [{ data: Object.values(housesData), backgroundColor: ['#1976d2', '#ef6c00', '#388e3c'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+
+        const sortedGrades = Object.keys(gradesData).sort((a,b)=>a-b); const gradeCounts = sortedGrades.map(g => gradesData[g]);
+        if(myGradeChart) myGradeChart.destroy();
+        myGradeChart = new Chart(document.getElementById('gradeChart'), { type: 'bar', data: { labels: sortedGrades.map(g=>`Gr ${g}`), datasets: [{ label: 'සිසුන් සංඛ්‍යාව', data: gradeCounts, backgroundColor: '#4e73df' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+
+        const attSnap = await getDocs(collection(db, "attendance")); const flwSnap = await getDocs(collection(db, "flowers"));
+        let attCounts = {}; let flwCounts = {};
+        attSnap.forEach(doc => { const recs = doc.data().records; for(let id in recs) { if(recs[id]) attCounts[id] = (attCounts[id] || 0) + 1; } });
+        flwSnap.forEach(doc => { const recs = doc.data().records; for(let id in recs) { if(recs[id]) flwCounts[id] = (flwCounts[id] || 0) + 1; } });
+
+        const getTop10HTML = (countsObj, iconClass, colorClass) => {
+            const sortedIds = Object.keys(countsObj).sort((a,b) => countsObj[b] - countsObj[a]).slice(0, 10);
+            if(sortedIds.length === 0) return "<p class='text-muted small'>දත්ත නොමැත</p>";
+            return sortedIds.map((id, index) => {
+                const stu = allStudents.find(s => s.id === id); if(!stu) return "";
+                return `<div class="top-list-item"><div><span class="fw-bold me-2 text-muted">#${index+1}</span> <b>${stu.name}</b> <span class="badge bg-light text-dark ms-2">${stu.grade}</span></div><span class="badge bg-${colorClass} fs-6"><i class="fas ${iconClass} me-1"></i> ${countsObj[id]}</span></div>`;
+            }).join('');
+        };
+
+        document.getElementById('top-attendance-list').innerHTML = getTop10HTML(attCounts, "fa-check", "success");
+        document.getElementById('top-flowers-list').innerHTML = getTop10HTML(flwCounts, "fa-leaf", "warning");
+        toggleLoader(false);
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
