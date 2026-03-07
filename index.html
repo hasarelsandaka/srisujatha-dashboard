@@ -25,37 +25,15 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        /* logo animations  */
-        /* Define the animation */
-@keyframes logoEntrance {
-  0% {
-    transform: scale(0.8) rotate(-10deg);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
+        /* Logo Spin Animation */
+        .logo-spin {
+            animation: spinLogo 10s linear infinite;
+        }
 
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-}
-
-/* Apply to the logo */
-.logo-animated {
-  animation: logoEntrance 0.8s ease-out forwards, 
-             pulse 3s infinite ease-in-out 0.8s; /* Starts after entrance */
-}
-
-/* Optional: Add a hover spin */
-.logo-animated:hover {
-  transform: rotate(360deg);
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
+        @keyframes spinLogo {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
         /* Fade-in Animation for views */
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
@@ -129,13 +107,12 @@
 
 <div class="sidebar hidden" id="sidebar">
     <div class="text-center mb-4 mt-3">
-<img src="https://yt3.ggpht.com/n_GrHgSvfsqYEvl3OJ5REnWqjvRxjoznu_jTlsXmZoTi8tuQDjEdPFQkZse9AZHOHjv5FAVd=s176-c-k-c0x00ffffff-no-rj-mo" 
-     alt="Daham Pasal Logo" 
-     class="mb-2 shadow-sm logo-animated" 
-     style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; background: white; padding: 5px;">
-        <h5 class="fw-bold mb-0">SRI SUJATHA</h5>
-        <p class="small opacity-75">STUDENT DATABASE</p>
-    </div>
+    <!--logo-->
+    <img src="lhttps://yt3.ggpht.com/n_GrHgSvfsqYEvl3OJ5REnWqjvRxjoznu_jTlsXmZoTi8tuQDjEdPFQkZse9AZHOHjv5FAVd=s176-c-k-c0x00ffffff-no-rj-mo" alt="Daham Pasal Logo" style="width: 80px; height: 80px; object-fit: contain; border-radius: 50%; background: white; padding: 5px;" class="mb-2 shadow-sm logo-spin">
+    
+    <h5 class="fw-bold mb-0 mt-2">SRI SUJATHA</h5>
+    <p class="small opacity-75">STUDENT DATABASE</p>
+</div>
     <nav class="nav flex-column">
         <div class="nav-link active" onclick="switchView('dashboard')" id="link-dash"><i class="fas fa-home me-3"></i> Dashboard</div>
         <div class="nav-link" onclick="switchView('classes')" id="link-classes"><i class="fas fa-users me-3"></i> Classes (පන්ති)</div>
@@ -762,7 +739,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-
-
